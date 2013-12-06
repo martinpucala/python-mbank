@@ -12,17 +12,25 @@ Features
 Usage
 -----
 
+    import time
     from mbank.mbank import mBank
+    from datetime import date
+
+    
+    date_from=date(2011,1,1)
+    date_to=date(2013,11,30)
+
     mbank = mBank("customer id", "password")
     mbank.login()
-    result   = mbank.get_transactions("full account number")
+    result   = mbank.get_transactions("full account number", date_from, date_to)
     accounts = mbank.get_accounts()
+
 
 Content of result variable:
 
     [
         <.....>
-        {'ss': 0, 'price': 5961.0500000000002, 'ks': 0, 'vs': 20120040, 'date_realization': datetime.date(2012, 6, 20), 'date_accounting': datetime.date(2012, 6, 20), 'type': 'incoming'},
-        {'ss': 0, 'price': 3961.0500000000002, 'ks': 7618, 'vs': 70577193, 'date_realization': datetime.date(2012, 6, 20), 'date_accounting': datetime.date(2012, 6, 20), 'type': 'outcoming'},
+        {'ss': 0, 'balance': 5961.0500000000002, 'ks': 0, 'vs': 20120040, 'date_realization': datetime.date(2012, 6, 20), 'date_accounting': datetime.date(2012, 6, 20), 'type': 'incoming', 'amount': 123, 'account': '000012-3456789101/1213'},
+        {'ss': 0, 'balance': 3961.0500000000002, 'ks': 7618, 'vs': 70577193, 'date_realization': datetime.date(2012, 6, 20), 'date_accounting': datetime.date(2012, 6, 20), 'type': 'outcoming','amount':-2000, 'account': '000012-3456789101/1213'},
         <.....>
     ]
