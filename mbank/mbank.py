@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Copyright (c) Adam Strauch
+Copyright (c) Adam Strauch, Petr Kremen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -131,7 +131,8 @@ class mBank(object):
         cashs = re.findall(q, r_accounts.text)
         q = "(670100-[0-9]{10}/6210)"
         accounts = re.findall(q, r_accounts.text)
-        if len(accounts) != len(parms) or len(accounts) != len(cashs):
+
+	if len(accounts) > len(parms) or len(accounts) > len(cashs):
             raise MbankException("Parse error")
 
         data = {}
@@ -141,7 +142,7 @@ class mBank(object):
             i+=1
         return data
 
-    def get_transactions_csv(self, account):
+    def get_transactions_csv(self, account,date_from,date_to):
         if not self.data:
             raise MbankException("Login first!")
 
@@ -163,12 +164,12 @@ class mBank(object):
             "__STATE": self.data["state"],
             "__EVENTVALIDATION": self.data["eventvalidation"],
             'rangepanel_group': 'daterange_radio',
-            'daterange_from_day': 1,
-            'daterange_from_month': 5,
-            'daterange_from_year': 2012,
-            'daterange_to_day': 24,
-            'daterange_to_month': 6,
-            'daterange_to_year': 2012,
+            'daterange_from_day': date_from.day,
+            'daterange_from_month': date_from.month,
+            'daterange_from_year': date_from.year,
+            'daterange_to_day': date_to.day,
+            'daterange_to_month': date_to.month,
+            'daterange_to_year': date_to.year,
             'accoperlist_typefilter_group': 'ALL',
             'accoperlist_amountfilter_amountmin': '',
             'accoperlist_amountfilter_amountmax': '',
@@ -178,8 +179,8 @@ class mBank(object):
         r_csv = self.load(self.transactions_csv_url, "post", form_data)
         return r_csv.text
 
-    def get_transactions(self, account):
-        data = self.get_transactions_csv(account)
+    def get_transactions(self, account, date_from, date_to):
+        data = self.get_transactions_csv(account,date_from, date_to)
         lines = []
         write = False
         for line in data.split("\n"):
@@ -197,40 +198,49 @@ class mBank(object):
             o = {
                 "date_realization": datetime.date(date1[2], date1[1], date1[0]),
                 "date_accounting": datetime.date(date2[2], date2[1], date2[0]),
-                "type": "outcoming" if "ODCHOZ" in x[2].decode("iso-8859-2") else "incoming",
-                "price": float(x[-2].replace(" ", "").replace(",", ".")),
+                "type": "outcoming" if "ODCHOZ" in x[2] else "incoming",
+                "balance": float(x[-2].replace(" ", "").replace(",", ".")),
+                "amount": float(x[-3].replace(" ", "").replace(",", ".")),
                 "ss": int(x[-4]) if x[-4] else 0,
                 "vs": int(x[-5]) if x[-5] else 0,
                 "ks": int(x[-6]) if x[-6] else 0,
+                "account": x[-7],
             }
             result.append(o)
         return result
 
-def transactions_format(data):
-    print "Date".ljust(19),
-    print "Type".ljust(10),
-    print "SS".ljust(10),
-    print "VS".ljust(10),
-    print "KS".ljust(10),
-    print "Price".ljust(10)
-    print "-------------------------------------------------------------------------"
-    for trans in data:
-        print trans["date_realization"].strftime("%d.%m.%Y").ljust(19),
-        print trans["type"].ljust(10),
-        print ("%d" % trans["ss"]).ljust(10),
-        print ("%d" % trans["vs"]).ljust(10),
-        print ("%d" % trans["ks"]).ljust(10),
-        print ("%.2f" % trans["price"]).ljust(10)
+    def transactions_format(self,data):
+       print "Datum".ljust(19),
+       print "Typ".ljust(10),
+       print "Částka".ljust(12),
+       print "Účet".ljust(30),
+       print "Spec. s.".ljust(10),
+       print "Var. s.".ljust(10),
+       print "Konst. s.".ljust(10),
+       print "Zůstatek".ljust(10)
+       print "-"*115
+       for trans in data:
+           print trans["date_realization"].strftime("%d.%m.%Y").ljust(19),
+           print trans["type"].ljust(10),
+           print ("%.2f" % trans["amount"]).ljust(10),
+           print trans["account"].ljust(30),
+           print ("%d" % trans["ss"]).ljust(10),
+           print ("%d" % trans["vs"]).ljust(10),
+           print ("%d" % trans["ks"]).ljust(10),
+           print ("%.2f" % trans["balance"]).ljust(10)
 
 def main():
     customer = ""
     password = ""
-    account = "670100-2206514444/6210"
+    account = ""
 
+    date_from=date(2010,1,1)
+    date_to=date(2013,10,31)
+ 
     mbank = mBank(customer, password)
     mbank.login()
-    result = mbank.get_transactions(account)
-    transactions_format(result)
+    result = mbank.get_transactions(account,date_from,date_to)
+    mbank.transactions_format(result)
 
 if __name__ == "__main__":
     main()
